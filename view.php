@@ -35,10 +35,6 @@
           $stmt->execute(array( ':pi' => $_GET['profile_id']));
 
           $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        }
-        catch(PDOException $e){
-          echo "Exception caught: ".$e->getMessage();
-        }
         ?>
           <h1>Profile Information</h1><br>
           <label>First Name: </label><?php echo $row['first_name'] ?><br><br>
@@ -46,6 +42,25 @@
           <label>Email: </label><?php echo $row['email'] ?><br><br>
           <label>Headline: </label><?php echo $row['headline'] ?><br><br>
           <label>Summary: </label><?php echo $row['summary'] ?><br><br>
+          <?php
+            $pstmt = $pdo->prepare('SELECT * FROM position where profile_id= :pi');
+            $pstmt->execute(array( ':pi' => $_GET['profile_id']));
+
+            if($pstmt->rowCount() == true){
+              echo "<label>Positions: </label><br>";
+              echo "<ul>";
+              while($row1 = $pstmt->fetch(PDO::FETCH_ASSOC)){
+                echo "<li>".$row1['year'].": ".$row1['description']."</li>";
+              }
+              echo "</ul>";
+            }
+
+          }
+          catch(PDOException $e){
+            echo "Exception caught: ".$e->getMessage();
+          }
+
+          ?>
           <a href="index.php">Done</a>
     </div>
   </body>
