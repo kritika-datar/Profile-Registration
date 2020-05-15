@@ -17,8 +17,15 @@
     integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r"
     crossorigin="anonymous">
 
+    <link rel="stylesheet"
+    href="https://code.jquery.com/ui/1.12.1/themes/ui-lightness/jquery-ui.css">
+
     <script src="https://code.jquery.com/jquery-3.2.1.js"
     integrity="sha256-DZAnKJ/6XZ9si04Hgrsxu/8s717jcIzLy3oi35EouyE="
+    crossorigin="anonymous"></script>
+
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"
+    integrity="sha256-T0Vest3yCU7pafRw9r+settMBX6JkKN06dqBnpQ8d30="
     crossorigin="anonymous"></script>
   </head>
   <body>
@@ -64,6 +71,9 @@
           $var = $pdo->prepare('DELETE from position where profile_id= :pid');
           $var->execute(array(':pid' => $_GET['profile_id']));
 
+          $var = $pdo->prepare('DELETE from education where profile_id= :pid');
+          $var->execute(array(':pid' => $_GET['profile_id']));
+
           $rank = 1;
           for($i=1;$i<=9;$i++){
               if(isset($_POST['year'.$i])){
@@ -75,8 +85,33 @@
                   ':year' => $_POST['year'.$i],
                   ':desc' => $_POST['desc'.$i])
                 );
-                $rank++;
               }
+
+              if(isset($_POST['edu_year'.$i])){
+                $institution_id = false;
+
+                $statement = $pdo->prepare('SELECT institution_id from institution where name =:name');
+                $statement->execute(array(':name' => $_POST['edu_school'.$i]));
+                $row = $statement->fetch(PDO::FETCH_ASSOC);
+                if($row !== false){
+                  $institution_id = $row['institution_id'];
+                }
+                else{
+                  $pstmt = $pdo->prepare('INSERT INTO institution(name) VALUES (:name)');
+                  $pstmt->execute(array(':name' => $_POST['edu_school'.$i]));
+                  $institution_id = $pdo->lastInsertId();
+                }
+
+                $pstmt = $pdo->prepare('INSERT INTO education VALUES ( :pid, :institution_id, :rank, :year)');
+                $pstmt->execute(array(
+                  ':pid' => $_GET['profile_id'],
+                  ':rank' => $rank,
+                  ':year' => $_POST['edu_year'.$i],
+                  ':institution_id' => $institution_id)
+                );
+              }
+
+              $rank++;
           }
 
           $_SESSION['success'] = 'Profile updated';
@@ -107,7 +142,24 @@
             <label>Email: </label><input type="text" name="email" size="50" value="<?php echo $row['email'] ?>" id="idemail"><br><br>
             <label>Headline: </label><br><input type="text" name="headline" size="80" value="<?php echo $row['headline'] ?>" id="idheadline"><br><br>
             <label>Summary: </label><br><textarea rows="4" cols="50" id="idsummary" name="summary"><?php echo $row['summary'] ?></textarea><br><br>
-            <label>Positions: </label><input type="submit" id="position" value="+">
+            <label>Education: </label><input type="submit" id="education" value="+">
+            <div id="educationFields">
+            <?php
+              $edupos = 0;
+              $ps = $pdo->prepare('SELECT * FROM education inner join institution on education.institution_id = institution.institution_id where profile_id= :pi');
+              $ps->execute(array( ':pi' => $_GET['profile_id']));
+
+              if($ps->rowCount() == true){
+                while($row1 = $ps->fetch(PDO::FETCH_ASSOC)){
+                  $edupos++;
+                  echo "<div id='edu".$edupos."'><p><input type='text' name='edu_year".$edupos."' value='".$row1['year']."'>
+                        <input type='button' value='-' onclick='$(\"#edu".$edupos."\").remove(); return false;'></p>";
+                  echo "<p>School: <input type='text' size='80' class='school' value='".$row1['name']."' name='edu_school".$edupos."'></p></div>";
+                }
+              }
+            ?>
+            </div>
+            <label>Position: </label><input type="submit" id="position" value="+">
             <div id="positionFields">
             <?php
               $pos = 0;
@@ -149,6 +201,33 @@
             <p>Year: <input type="text" name="year'+count+'"> \
             <input type="button" value="-" onclick="$(\'#posit'+count+'\').remove(); return false;"><br> \
             <textarea name="desc'+count+'" rows="5" cols="80"></textarea></p></div>');
+        });
+      });
+
+      countEdu=0;
+      $(document).ready(function(){
+        window.console && console.log("Document ready called");
+        $('#education').click(function(event){
+          event.preventDefault();
+          if(countEdu>=9){
+            alert("Maximum positions reached");
+            return;
+          }
+          countEdu++;
+          window.console && console.log("Adding position "+countEdu);
+          $('#educationFields').append(
+            '<div id="edu'+countEdu+'"> \
+            <p>Year: <input type="text" name="edu_year'+countEdu+'"> \
+            <input type="button" value="-" onclick="$(\'#edu'+countEdu+'\').remove(); return false;"></p> \
+            <p>School: <input type="text" size="80" class="school" name="edu_school'+countEdu+'"></p></div>');
+
+          $('.school').autocomplete({
+            source: "school.php"
+          });
+
+        });
+        $('.school').autocomplete({
+          source: "school.php"
         });
       });
       </script>

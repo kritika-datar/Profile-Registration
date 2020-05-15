@@ -43,6 +43,17 @@
           <label>Headline: </label><?php echo $row['headline'] ?><br><br>
           <label>Summary: </label><?php echo $row['summary'] ?><br><br>
           <?php
+            $pstmt = $pdo->prepare('SELECT * FROM education inner join institution on education.institution_id = institution.institution_id where profile_id= :pi');
+            $pstmt->execute(array( ':pi' => $_GET['profile_id']));
+
+            if($pstmt->rowCount() == true){
+              echo "<label>Education: </label><br>";
+              echo "<ul>";
+              while($row1 = $pstmt->fetch(PDO::FETCH_ASSOC)){
+                echo "<li>".$row1['year'].": ".$row1['name']."</li>";
+              }
+              echo "</ul>";
+            }
             $pstmt = $pdo->prepare('SELECT * FROM position where profile_id= :pi');
             $pstmt->execute(array( ':pi' => $_GET['profile_id']));
 
